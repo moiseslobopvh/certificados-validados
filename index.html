@@ -68,25 +68,33 @@
 
 <script>
   const base62chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-
-  function fromBase62(str) {
-    let num = 0;
-    for (let i = 0; i < str.length; i++) {
-      num = num * 62 + base62chars.indexOf(str[i]);
+    function fromBase62(str) {
+      let num = 0;
+      for (let i = 0; i < str.length; i++) {
+        num = num * 62 + base62chars.indexOf(str[i]);
+      }
+      return num;
     }
-    return num;
-  }
 
   function fromCharCodesBase62(base62Str) {
     let texto = '';
-    for (let i = 0; i < base62Str.length; i += 2) {
-      const b62 = base62Str.substring(i, i + 2);
-      const code = fromBase62(b62);
+    for (let i = 0; i < base62Str.length; i += 4) {
+      const base62Char = base62Str.substring(i, i + 2);
+      const base62Verificador = base62Str.substring(i + 2, i + 4);
+  
+      const code = fromBase62(base62Char);
+      const verificador = fromBase62(base62Verificador);
+  
+      if (verificador !== code + 1) {
+          texto = "violação";
+        break; // parou no ruído ou na corrupção
+      }
       texto += String.fromCharCode(code);
     }
     return texto.trim();
   }
-
+      
+  
   let scanner;
 
   function iniciarLeitura() {
@@ -127,12 +135,13 @@
   function processarCodigo(codigo) {
     const resultadoDiv = document.getElementById("resultado");
     const partes = codigo.split(".");
+
     if (partes.length !== 5) {
-      validacao.className = "invalido";
-      validacao.innerText = "❌ Formato inválido do código.";
-      abrirModal();
-      return;
-    }
+				validacao.className = "invalido";
+				validacao.innerText = "❌ Formato inválido do código.";
+				abrirModal();
+				return;
+			}    
 
     try {
                const [dataCod, horaCod, grupo3, grupo4, grupo5] = partes;
@@ -154,33 +163,30 @@
                 const data = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
                 const hora = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
                 
-                if (dataDigitada !== data || horaDigitada !== hora) {
-                	validacao.className = "invalido";
-                	validacao.innerText = "❌ Os dados informados não garantem a validação do certificado.";
-                	abrirModal();
-                	return;
-                }
-                
-
                 // Decodifica texto completo (curso + aluno)
                 const dadosDecodificados = fromCharCodesBase62(grupo3);
 
                 let curso = dadosDecodificados.substring(0, 40);
                 let aluno = dadosDecodificados.substring(40,80);
 
-               // Decodifica tamanhos (base 10, não base62)
+                // Decodifica tamanhos (base 10, não base62)
                 let tam_curso = parseInt(grupo4, 10) - 100;
                 let tam_aluno = parseInt(grupo5, 10) - 100;
-
 
                 curso = curso.substring(0, tam_curso);
                 aluno = aluno.substring(0, tam_aluno);
 
 
       resultadoDiv.className = "valido";
-      resultadoDiv.innerText =
-        `✔ Certificado válido:\n\n` +
-        `Aluno(a): ${aluno}\nCurso: ${curso}\nData: ${data}\nHora: ${hora}`;
+      //resultadoDiv.innerText = `Aluno(a): ${aluno}\nCurso: ${curso}\nData: ${data}\nHora: ${hora}`;
+        resultadoDiv.innerHTML =
+            '<img src="https://cdn-icons-png.flaticon.com/128/18251/18251692.png" alt="Certificado Válido" style="width: 60px; display: block; margin: 0 auto 10px;" />' +
+            '<p style="color: black; font-family: Arial, sans-serif; font-weight: normal;">' +
+            'Aluno(a): ' + aluno + '<br>' +
+            'Curso: ' + curso + '<br>' +
+            'Data de Emissão: ' + data + '<br>' +
+            'Hora de Emissão: ' + hora +
+            '</p>';      
     } catch (e) {
       mostrarErro("❌ Erro ao processar o código.");
     }
