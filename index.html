@@ -134,20 +134,47 @@
     }
 
     try {
-      const dia = Math.floor(fromBase62(partes[0]) / 18) - 10;
-      const mes = Math.floor(fromBase62(partes[1]) / 35) - 10;
-      const ano = Math.floor(fromBase62(partes[2]) / 360) - 99;
-      const hh = Math.floor(fromBase62(partes[3]) / 19) - 17;
-      const mm = Math.floor(fromBase62(partes[4]) / 11) - 11;
-      const ss = Math.floor(fromBase62(partes[5]) / 11) - 13;
+               const [dataCod, horaCod, grupo3, grupo4, grupo5] = partes;
 
-      const data = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
-      const hora = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+                const base62Data = dataCod.replace(/^0+/, '');
+                const base62Hora = horaCod.replace(/^0+/, '');
+                
+                const vlrData = fromBase62(base62Data);
+                const vlrHora = fromBase62(base62Hora);
+                
+                const ano = Math.floor(vlrData / (32 * 32));
+                const mes = Math.floor((vlrData % (32 * 32)) / 32);
+                const dia = vlrData % 32;
+                
+                const hh = Math.floor(vlrHora / (60 * 60));
+                const mm = Math.floor((vlrHora % (60 * 60)) / 60);
+                const ss = vlrHora % 60;
+                
+                const data = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`;
+                const hora = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+                
+                if (dataDigitada !== data || horaDigitada !== hora) {
+                	validacao.className = "invalido";
+                	validacao.innerText = "❌ Os dados informados não garantem a validação do certificado.";
+                	abrirModal();
+                	return;
+                }
+                
 
-      const dadosCodificados = partes.slice(6).join('');
-      const metade = Math.floor(dadosCodificados.length / 2);
-      const curso = fromCharCodesBase62(dadosCodificados.substring(0, metade));
-      const aluno = fromCharCodesBase62(dadosCodificados.substring(metade));
+                // Decodifica texto completo (curso + aluno)
+                const dadosDecodificados = fromCharCodesBase62(grupo3);
+
+                let curso = dadosDecodificados.substring(0, 40);
+                let aluno = dadosDecodificados.substring(40,80);
+
+               // Decodifica tamanhos (base 10, não base62)
+                let tam_curso = parseInt(grupo4, 10) - 100;
+                let tam_aluno = parseInt(grupo5, 10) - 100;
+
+
+                curso = curso.substring(0, tam_curso);
+                aluno = aluno.substring(0, tam_aluno);
+
 
       resultadoDiv.className = "valido";
       resultadoDiv.innerText =
